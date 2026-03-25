@@ -34,7 +34,7 @@ class BaselineDNN(nn.Module):
         # 3 - define if the embedding layer will be frozen or finetuned
         ...  # EX4
         
-        self.emb = nn.Embedding.from_pretrained(embeddings, freeze = not trainable_emb) 
+        self.emb = nn.Embedding.from_pretrained(embeddings, freeze = not trainable_emb, padding_idx=0) 
 
 
         # 4 - define a non-linear transformation of the representations
@@ -65,7 +65,10 @@ class BaselineDNN(nn.Module):
         
         
         # 2 - construct a sentence representation out of the word embeddings
-        representations = [np.sum(sentence, axis = 1)/length for sentence, length in embeddings, lengths]
+        sum_embeddings = torch.sum(embeddings, dim = 1)
+        lengths_tensor = lengths.view(-1, 1).float()
+        representations = summed_embeddings / lengths_tensor
+        
             
 
         # 3 - transform the representations to new ones.
