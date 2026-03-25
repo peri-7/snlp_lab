@@ -33,13 +33,23 @@ class BaselineDNN(nn.Module):
 
         # 3 - define if the embedding layer will be frozen or finetuned
         ...  # EX4
+        
+        self.emb = nn.Embedding.from_pretrained(embeddings, freeze = not trainable_emb) 
+
 
         # 4 - define a non-linear transformation of the representations
         ...  # EX5
-
+        
+        vocab, emb_dim = embeddings.shape
+        
+        self.linear1 = nn.Linear(emb_dim, emb_dim)
+        self.activ1 = nn.ReLU()
+        
+        
         # 5 - define the final Linear layer which maps
         # the representations to the classes
-        ...  # EX5
+        # EX5
+        self.linear2 = nn.Linear(emb_dim, output_size)
 
     def forward(self, x, lengths):
         """
@@ -49,18 +59,25 @@ class BaselineDNN(nn.Module):
         Returns: the logits for each class
 
         """
-
+        
         # 1 - embed the words, using the embedding layer
-        embeddings = ...  # EX6
-
+        embeddings = self.emb(x)# EX6
+        
+        
         # 2 - construct a sentence representation out of the word embeddings
-        representations = ...  # EX6
+        representations = [np.sum(sentence, axis = 1)/length for sentence, length in embeddings, lengths]
+            
 
         # 3 - transform the representations to new ones.
-        representations = ...  # EX6
+        
+        representations = self.linear1(representations) 
+        representations = self.activ1(representations)
+  
+        
+        # EX6
 
         # 4 - project the representations to classes using a linear layer
-        logits = ...  # EX6
+        logits = self.linear2(representations)  # EX6
 
         return logits
 
