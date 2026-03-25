@@ -67,7 +67,7 @@ class BaselineDNN(nn.Module):
         # 2 - construct a sentence representation out of the word embeddings
         sum_embeddings = torch.sum(embeddings, dim = 1)
         lengths_tensor = lengths.view(-1, 1).float()
-        representations = summed_embeddings / lengths_tensor
+        representations = sum_embeddings / lengths_tensor
         
             
 
