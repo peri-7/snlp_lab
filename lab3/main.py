@@ -1,118 +1,131 @@
-import os
-import warnings
-
-from sklearn.exceptions import UndefinedMetricWarning
-from sklearn.preprocessing import LabelEncoder
 import torch
-from torch.utils.data import DataLoader
-
-from config import EMB_PATH
-from dataloading import SentenceDataset
-from models import BaselineDNN
-from training import train_dataset, eval_dataset
-from utils.load_datasets import load_MR, load_Semeval2017A
-from utils.load_embeddings import load_word_vectors
-
-warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
-
-########################################################
-# Configuration
-########################################################
+import numpy as np
+from torch import nn
 
 
-# Download the embeddings of your choice
-# for example http://nlp.stanford.edu/data/glove.6B.zip
+class BaselineDNN(nn.Module):
+    """
+    1. We embed the words in the input texts using an embedding layer
+    2. We compute the min, mean, max of the word embeddings in each sample
+       and use it as the feature representation of the sequence.
+    4. We project with a linear layer the representation
+       to the number of classes.ngth)
+    """
 
-# 1 - point to the pretrained embeddings file (must be in /embeddings folder)
-EMBEDDINGS = os.path.join(EMB_PATH, "glove.twitter.27B/glove.twitter.27B.50d.txt")
+    def __init__(self, output_size, embeddings, trainable_emb=False):
+        """
 
-# 2 - set the correct dimensionality of the embeddings
-EMB_DIM = 50
+        Args:
+            output_size(int): the number of classes
+            embeddings(bool):  the 2D matrix with the pretrained embeddings
+            trainable_emb(bool): train (finetune) or freeze the weights
+                the embedding layer
+        """
 
-EMB_TRAINABLE = False
-BATCH_SIZE = 128
-EPOCHS = 50
-DATASET = "Semeval2017A"  # options: "MR", "Semeval2017A"
+        super(BaselineDNN, self).__init__()
 
-# if your computer has a CUDA compatible gpu use it, otherwise use the cpu
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # 1 - define the embedding layer
+        ...  # EX4
 
-########################################################
-# Define PyTorch datasets and dataloaders
-########################################################
+        # 2 - initialize the weights of our Embedding layer
+        # from the pretrained word embeddings
+        ...  # EX4
 
-# load word embeddings
-print("loading word embeddings...")
-word2idx, idx2word, embeddings = load_word_vectors(EMBEDDINGS, EMB_DIM)
-
-# load the raw data
-if DATASET == "Semeval2017A":
-    X_train, y_train, X_test, y_test = load_Semeval2017A()
-elif DATASET == "MR":
-    X_train, y_train, X_test, y_test = load_MR()
-else:
-    raise ValueError("Invalid dataset")
-
-# convert data labels from strings to integers
-le = LabelEncoder()
-le.fit(y_train)
-y_train_og = y_train
-y_train = le.transform(y_train)  # EX1
-y_test = le.transform(y_test)  # EX1
-n_classes = le.classes_.size  # EX1 - LabelEncoder.classes_.size
-print('\n ========== EX1 ========== \n')
-for i in range(10):
-    print(f"{y_train[i]}, label:{y_train_og[i]}")
+        # 3 - define if the embedding layer will be frozen or finetuned
+        ...  # EX4
+        
+        self.emb = nn.Embedding.from_pretrained(embeddings, freeze = not trainable_emb, padding_idx=0) 
 
 
-# Define our PyTorch-based Dataset
-train_set = SentenceDataset(X_train, y_train, word2idx)
-test_set = SentenceDataset(X_test, y_test, word2idx)
-print('\n ========== EX2 ========== \n')
-for i in range(10):
-    print(f"{i+1}: \n{train_set.data[i]}\n")
-    
-    
-    
-print('\n ========== EX3 ========== \n')
-for i in range(10, 15):
-    sentence, label, length = train_set[i]
-    print(f"tokenized tweet {i+1}: \n{train_set.data[i]}\nindeces: \n{sentence}\nlabel: \n{label}\nlength: \n{length}\n")
-    
-    
-    
-# EX7 - Define our PyTorch-based DataLoader
-train_loader = ...  # EX7
-test_loader = ...  # EX7
+        # 4 - define a non-linear transformation of the representations
+        ...  # EX5
+        
+        vocab, emb_dim = embeddings.shape
+        
+        self.linear1 = nn.Linear(emb_dim, emb_dim)
+        self.activ1 = nn.ReLU()
+        
+        
+        # 5 - define the final Linear layer which maps
+        # the representations to the classes
+        # EX5
+        self.linear2 = nn.Linear(emb_dim, output_size)
 
-#############################################################################
-# Model Definition (Model, Loss Function, Optimizer)
-#############################################################################
-model = BaselineDNN(output_size=...,  # EX8
-                    embeddings=embeddings,
-                    trainable_emb=EMB_TRAINABLE)
+    def forward(self, x, lengths):
+        """
+        This is the heart of the model.
+        This function, defines how the data passes through the network.
 
-# move the mode weight to cpu or gpu
-model.to(DEVICE)
-print(model)
+        Returns: the logits for each class
 
-# We optimize ONLY those parameters that are trainable (p.requires_grad==True)
-criterion = ...  # EX8
-parameters = ...  # EX8
-optimizer = ...  # EX8
+        """
+        
+        # 1 - embed the words, using the embedding layer
+        embeddings = self.emb(x)# EX6
+        
+        
+        # 2 - construct a sentence representation out of the word embeddings
+        sum_embeddings = torch.sum(embeddings, dim = 1)
+        lengths_tensor = lengths.view(-1, 1).float()
+        representations = summed_embeddings / lengths_tensor
+        
+            
 
-#############################################################################
-# Training Pipeline
-#############################################################################
-for epoch in range(1, EPOCHS + 1):
-    # train the model for one epoch
-    train_dataset(epoch, train_loader, model, criterion, optimizer)
+        # 3 - transform the representations to new ones.
+        
+        representations = self.linear1(representations) 
+        representations = self.activ1(representations)
+  
+        
+        # EX6
 
-    # evaluate the performance of the model, on both data sets
-    train_loss, (y_train_gold, y_train_pred) = eval_dataset(train_loader,
-                                                            model,
-                                                            criterion)
+        # 4 - project the representations to classes using a linear layer
+        logits = self.linear2(representations)  # EX6
 
-    test_loss, (y_test_gold, y_test_pred) = eval_dataset(test_loader,
-                                                         model,
-                                                         criterion)
+        return logits
+
+
+class LSTM(nn.Module):
+    def __init__(self, output_size, embeddings, trainable_emb=False, bidirectional=False):
+
+        super(LSTM, self).__init__()
+        self.hidden_size = 100
+        self.num_layers = 1
+        self.bidirectional = bidirectional
+
+        self.representation_size = 2 * \
+            self.hidden_size if self.bidirectional else self.hidden_size
+
+        embeddings = np.array(embeddings)
+        num_embeddings, dim = embeddings.shape
+
+        self.embeddings = nn.Embedding(num_embeddings, dim)
+        self.output_size = output_size
+
+        self.lstm = nn.LSTM(dim, hidden_size=self.hidden_size,
+                            num_layers=self.num_layers, bidirectional=self.bidirectional)
+
+        if not trainable_emb:
+            self.embeddings = self.embeddings.from_pretrained(
+                torch.Tensor(embeddings), freeze=True)
+
+        self.linear = nn.Linear(self.representation_size, output_size)
+
+    def forward(self, x, lengths):
+        batch_size, max_length = x.shape
+        embeddings = self.embeddings(x)
+        X = torch.nn.utils.rnn.pack_padded_sequence(
+            embeddings, lengths, batch_first=True, enforce_sorted=False)
+
+        ht, _ = self.lstm(X)
+
+        # ht is batch_size x max(lengths) x hidden_dim
+        ht, _ = torch.nn.utils.rnn.pad_packed_sequence(ht, batch_first=True)
+
+        # pick the output of the lstm corresponding to the last word
+        # TODO: Main-Lab-Q2 (Hint: take actual lengths into consideration)
+        representations = ...
+
+        logits = self.linear(representations)
+
+        return logits
