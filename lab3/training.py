@@ -40,24 +40,29 @@ def train_dataset(_epoch, dataloader, model, loss_function, optimizer):
         inputs, labels, lengths = batch
 
         # move the batch tensors to the right device
-        ...  # EX9
+        inputs = inputs.to(device)# EX9
+        labels = labels.to(device)
+        lengths = lengths.to(device)
 
         # Step 1 - zero the gradients
         # Remember that PyTorch accumulates gradients.
         # We need to clear them out before each batch!
-        ...  # EX9
+        optimizer.zero_grad()  # EX9
 
         # Step 2 - forward pass: y' = model(x)
-        ...  # EX9
+        outputs = model(inputs, lengths)  # EX9
 
         # Step 3 - compute loss: L = loss_function(y, y')
-        loss = ...  # EX9
+        if outputs.size(1) == 1:
+            loss = loss_function(outputs, labels.float().unsqueeze(1))
+        else:
+            loss = loss_function(outputs, labels)
 
         # Step 4 - backward pass: compute gradient wrt model parameters
-        ...  # EX9
+        loss.backward() # EX9
 
         # Step 5 - update weights
-        ...  # EX9
+        optimizer.step()  # EX9
 
         running_loss += loss.data.item()
 
@@ -91,21 +96,30 @@ def eval_dataset(dataloader, model, loss_function):
             inputs, labels, lengths = batch
 
             # Step 1 - move the batch tensors to the right device
-            ...  # EX9
+            inputs = inputs.to(device)# EX9
+            labels = labels.to(device)
+            lengths = lengths.to(device)
 
             # Step 2 - forward pass: y' = model(x)
-            ...  # EX9
+            outputs = model(inputs, lengths)  # EX9
 
             # Step 3 - compute loss.
             # We compute the loss only for inspection (compare train/test loss)
             # because we do not actually backpropagate in test time
-            loss = ...  # EX9
+            if outputs.size(1) == 1:
+                loss = loss_function(outputs, labels.float().unsqueeze(1))
+            else:
+                loss = loss_function(outputs, labels)
 
             # Step 4 - make predictions (class = argmax of posteriors)
-            ...  # EX9
+            if outputs.size(1) == 1:
+                pred = (outputs > 0).long().squeeze(1)
+            else:
+                pred = torch.argmax(outputs, dim=1)
 
             # Step 5 - collect the predictions, gold labels and batch loss
-            ...  # EX9
+            y_pred.append(pred.cpu().numpy())  # EX9
+            y.append(labels.cpu().numpy())
 
             running_loss += loss.data.item()
 
