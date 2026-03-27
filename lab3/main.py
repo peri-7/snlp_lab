@@ -34,8 +34,13 @@ EMB_DIM = 50
 EMB_TRAINABLE = False
 BATCH_SIZE = 128
 EPOCHS = 50
+<<<<<<< HEAD
 DATASET = "Semeval2017A"  # options: "MR", "Semeval2017A"
 #DATASET = "MR"
+=======
+#DATASET = "Semeval2017A"  # options: "MR", "Semeval2017A"
+DATASET = "MR"
+>>>>>>> bbd10fa84f551df0ff49a8b409553dde4b565b2c
 
 # if your computer has a CUDA compatible gpu use it, otherwise use the cpu
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
