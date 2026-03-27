@@ -1,5 +1,6 @@
 from torch.utils.data import Dataset
 from tqdm import tqdm
+import torch
 from nltk.tokenize import TweetTokenizer
 import re
 import matplotlib.pyplot as plt
@@ -64,8 +65,7 @@ class SentenceDataset(Dataset):
             length = min(N_max, len(sentence))
             self.lengths.append(length)
             #truncate if longer than N_max
-            if length > N_max: 
-                sentence = sentence[:N_max]
+            sentence = sentence[:N_max]
             #create list of indeces of tokens
             idx_tokens = [word2idx.get(token, unk_idx) for token in sentence]
             #zero-pad the rest of the sentence
@@ -113,9 +113,9 @@ class SentenceDataset(Dataset):
         """
 
         # EX3
-        sentence = self.data_nn[index]
-        label = self.labels[index]
-        length = self.lengths[index]
+        sentence = torch.tensor(self.data_nn[index], dtype=torch.long)
+        label = torch.tensor(self.labels[index], dtype=torch.long)
+        length = torch.tensor(self.lengths[index], dtype=torch.long)
         return sentence, label, length
         # raise NotImplementedError
 

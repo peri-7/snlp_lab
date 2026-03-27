@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 from torch import nn
+from torch.nn import init
 
 
 class BaselineDNN(nn.Module):
@@ -34,22 +35,25 @@ class BaselineDNN(nn.Module):
         # 3 - define if the embedding layer will be frozen or finetuned
         ...  # EX4
         
-        self.emb = nn.Embedding.from_pretrained(embeddings, freeze = not trainable_emb, padding_idx=0) 
+        self.emb = nn.Embedding.from_pretrained(torch.FloatTensor(embeddings), freeze = not trainable_emb, padding_idx=0) 
 
 
         # 4 - define a non-linear transformation of the representations
         ...  # EX5
         
         vocab, emb_dim = embeddings.shape
+        hidden_dim = 128
         
-        self.linear1 = nn.Linear(emb_dim, emb_dim)
+        self.linear1 = nn.Linear(emb_dim, hidden_dim)
+        init.kaiming_normal_(self.linear1.weight, nonlinearity='relu')
+        init.zeros_(self.linear1.bias)
         self.activ1 = nn.ReLU()
         
         
         # 5 - define the final Linear layer which maps
         # the representations to the classes
         # EX5
-        self.linear2 = nn.Linear(emb_dim, output_size)
+        self.linear2 = nn.Linear(hidden_dim, output_size)
 
     def forward(self, x, lengths):
         """
@@ -67,7 +71,8 @@ class BaselineDNN(nn.Module):
         # 2 - construct a sentence representation out of the word embeddings
         sum_embeddings = torch.sum(embeddings, dim = 1)
         lengths_tensor = lengths.view(-1, 1).float()
-        representations = summed_embeddings / lengths_tensor
+        # no need to rule out the zero indexes, already done in embedding layer
+        representations = sum_embeddings / lengths_tensor
         
             
 

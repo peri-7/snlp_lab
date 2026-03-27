@@ -1,5 +1,7 @@
 import os
 import warnings
+import matplotlib.pyplot as plt
+import numpy as np
 
 from sklearn.exceptions import UndefinedMetricWarning
 from sklearn.preprocessing import LabelEncoder
@@ -9,7 +11,7 @@ from torch.utils.data import DataLoader
 from config import EMB_PATH
 from dataloading import SentenceDataset
 from models import BaselineDNN
-from training import train_dataset, eval_dataset
+from training import train_dataset, eval_dataset, get_metrics_report
 from utils.load_datasets import load_MR, load_Semeval2017A
 from utils.load_embeddings import load_word_vectors
 
@@ -33,6 +35,7 @@ EMB_TRAINABLE = False
 BATCH_SIZE = 128
 EPOCHS = 50
 DATASET = "Semeval2017A"  # options: "MR", "Semeval2017A"
+#DATASET = "MR"
 
 # if your computer has a CUDA compatible gpu use it, otherwise use the cpu
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -80,13 +83,15 @@ for i in range(10, 15):
     print(f'tweet {i+1}:\n{train_set.data[i]}\ntweet {i+1} preprocessed for neural network: {sentence}\n label: {label} \n length = {length}\n')
 
 # EX7 - Define our PyTorch-based DataLoader
-train_loader = ...  # EX7
-test_loader = ...  # EX7
+train_loader = DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True)  # EX7
+test_loader = DataLoader(test_set, batch_size=BATCH_SIZE, shuffle=False)  # EX7
 
 #############################################################################
 # Model Definition (Model, Loss Function, Optimizer)
 #############################################################################
-model = BaselineDNN(output_size=...,  # EX8
+out_dim = 1 if n_classes == 2 else n_classes
+
+model = BaselineDNN(output_size=out_dim,  # EX8
                     embeddings=embeddings,
                     trainable_emb=EMB_TRAINABLE)
 
@@ -95,13 +100,18 @@ model.to(DEVICE)
 print(model)
 
 # We optimize ONLY those parameters that are trainable (p.requires_grad==True)
-criterion = ...  # EX8
-parameters = ...  # EX8
-optimizer = ...  # EX8
+if n_classes == 2:
+    criterion = torch.nn.BCEWithLogitsLoss() # EX8
+else:
+    criterion = torch.nn.CrossEntropyLoss() # EX8
+parameters = [p for p in model.parameters() if p.requires_grad]# EX8
+optimizer = torch.optim.Adam(params = parameters, lr=0.001)  # EX8
 
 #############################################################################
 # Training Pipeline
 #############################################################################
+train_losses = []
+test_losses = []
 for epoch in range(1, EPOCHS + 1):
     # train the model for one epoch
     train_dataset(epoch, train_loader, model, criterion, optimizer)
@@ -114,3 +124,21 @@ for epoch in range(1, EPOCHS + 1):
     test_loss, (y_test_gold, y_test_pred) = eval_dataset(test_loader,
                                                          model,
                                                          criterion)
+    train_losses.append(train_loss)
+    test_losses.append(test_loss)
+
+print('\n ========== EX10 ========== \n')
+
+print(get_metrics_report(y_test_gold, y_test_pred))
+
+plt.figure()
+x = np.arange(EPOCHS)
+plt.plot(x, train_losses, label="Train")
+plt.plot(x, test_losses, label="Test")
+plt.title(f"Learning Curves ({DATASET})")
+plt.xlabel("Epochs")
+plt.ylabel("Loss")
+plt.grid(linestyle='--')
+plt.legend()
+plt.tight_layout()
+plt.show()
