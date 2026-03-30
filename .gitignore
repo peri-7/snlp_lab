@@ -1,6 +1,7 @@
 
 # large files
 *.wav
+*.pt
 
 #large folders 
 datasets/

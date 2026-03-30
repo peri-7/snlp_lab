@@ -44,7 +44,8 @@ class BaselineDNN(nn.Module):
         vocab, emb_dim = embeddings.shape
         hidden_dim = 128
         
-        self.linear1 = nn.Linear(emb_dim, hidden_dim)
+        #self.linear1 = nn.Linear(emb_dim, hidden_dim)
+        self.linear1 = nn.Linear(2*emb_dim, hidden_dim)
         init.kaiming_normal_(self.linear1.weight, nonlinearity='relu')
         init.zeros_(self.linear1.bias)
         self.activ1 = nn.ReLU()
@@ -65,14 +66,26 @@ class BaselineDNN(nn.Module):
         """
         
         # 1 - embed the words, using the embedding layer
-        embeddings = self.emb(x)# EX6
+        embeddings = self.emb(x)# EX6 (B, N_max, D_emb)
         
         
         # 2 - construct a sentence representation out of the word embeddings
+        '''
+        useful for comparison
         sum_embeddings = torch.sum(embeddings, dim = 1)
         lengths_tensor = lengths.view(-1, 1).float()
-        # no need to rule out the zero indexes, already done in embedding layer
         representations = sum_embeddings / lengths_tensor
+        '''
+        # Q1
+        sum_embeddings = torch.sum(embeddings, dim = 1)
+        lengths_tensor = lengths.view(-1, 1).float()
+        avg_embeddings = sum_embeddings / lengths_tensor
+        
+        mask_max = (x == 0).unsqueeze(2) #(B, Nmax, 1)
+        max_embeddings = embeddings.masked_fill(mask_max, -float('inf'))
+        max_embeddings = torch.max(max_embeddings, dim = 1).values
+        # no need to rule out the zero indexes, already done in embedding layer
+        representations = torch.cat((avg_embeddings, max_embeddings), dim=1)
         
             
 
@@ -129,7 +142,8 @@ class LSTM(nn.Module):
 
         # pick the output of the lstm corresponding to the last word
         # TODO: Main-Lab-Q2 (Hint: take actual lengths into consideration)
-        representations = ...
+        batch_indices = torch.arange(batch_size, device=x.device)
+        representations = ht[batch_indices, lengths - 1, :]
 
         logits = self.linear(representations)
 

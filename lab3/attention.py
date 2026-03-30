@@ -69,18 +69,23 @@ class SimpleSelfAttentionModel(nn.Module):
         self.ln2 = nn.LayerNorm(dim)
 
         # TODO: Main-lab-Q3 - define output classification layer
-        self.output = ...
+        self.output = nn.Linear(dim, output_size)
 
-    def forward(self, x):
+    def forward(self, x, lengths):
         B, T = x.shape
+        mask = (x == 0).unsqueeze(2)
         tok_emb = self.token_embedding_table(x)  # (B,T,C)
-        pos_emb = self.position_embedding_table(torch.arange(T))  # (T,C)
+        pos_emb = self.position_embedding_table(torch.arange(T, device=x.device))  # (T,C)
         x = tok_emb + pos_emb  # (B,T,C)
         x = x + self.sa(self.ln1(x))
         x = x + self.ffwd(self.ln2(x))
 
         # TODO: Main-lab-Q3 - avg pooling to get a sentence embedding
-        x = ...  # (B,C)
+        x = x.masked_fill(mask, 0.0)
+        x = torch.sum(x, dim = 1)  # (B,C)
+        lengths_tensor = lengths.view(-1, 1).float()
+        x = x / lengths_tensor
+        
 
         logits = self.output(x)  # (C,output)
         return logits
@@ -110,12 +115,41 @@ class MultiHeadAttentionModel(nn.Module):
         # TODO: Main-Lab-Q4 - define the model
         # Hint: it will be similar to `SimpleSelfAttentionModel` but
         # `MultiHeadAttention` will be utilized for the self-attention module here
-        ...
+        self.n_head = n_head
+        self.max_length = max_length
 
-    def forward(self, x):
-        ...
+        embeddings = np.array(embeddings)
+        num_embeddings, dim = embeddings.shape
 
-        logits = ...
+        self.token_embedding_table = nn.Embedding(num_embeddings, dim)
+        self.token_embedding_table = self.token_embedding_table.from_pretrained(
+            torch.Tensor(embeddings), freeze=True)
+        self.position_embedding_table = nn.Embedding(self.max_length, dim)
+
+        head_size = dim // self.n_head
+        self.ma = MultiHeadAttention(n_head, head_size, dim)
+        self.ffwd = FeedFoward(dim)
+        self.ln1 = nn.LayerNorm(dim)
+        self.ln2 = nn.LayerNorm(dim)
+
+        self.output = nn.Linear(dim, output_size)
+
+    def forward(self, x, lengths):
+        B, T = x.shape
+        mask = (x == 0).unsqueeze(2)
+        tok_emb = self.token_embedding_table(x)  # (B,T,C)
+        pos_emb = self.position_embedding_table(torch.arange(T, device=x.device))  # (T,C)
+        x = tok_emb + pos_emb  # (B,T,C)
+        x = x + self.ma(self.ln1(x))
+        x = x + self.ffwd(self.ln2(x))
+
+        x = x.masked_fill(mask, 0.0)
+        x = torch.sum(x, dim = 1)  # (B,C)
+        lengths_tensor = lengths.view(-1, 1).float()
+        x = x / lengths_tensor
+        
+
+        logits = self.output(x)  # (C,output)
         return logits
 
 
@@ -144,19 +178,39 @@ class TransformerEncoderModel(nn.Module):
         # TODO: Main-Lab-Q5 - define the model
         # Hint: it will be similar to `MultiHeadAttentionModel` but now
         # there are blocks of MultiHeadAttention modules as defined below
-        ...
+        self.n_head = n_head
+        self.max_length = max_length
 
-        num_embeddings, dim = ...
+        embeddings = np.array(embeddings)
+        num_embeddings, dim = embeddings.shape
+
+        self.token_embedding_table = nn.Embedding(num_embeddings, dim)
+        self.token_embedding_table = self.token_embedding_table.from_pretrained(
+            torch.Tensor(embeddings), freeze=True)
+        self.position_embedding_table = nn.Embedding(self.max_length, dim)
 
         head_size = dim // self.n_head
         self.blocks = nn.Sequential(
             *[Block(n_head, head_size, dim) for _ in range(n_layer)])
         self.ln_f = nn.LayerNorm(dim)  # final layer norm
 
-        self.output = ...
+        self.output = nn.Linear(dim, output_size)
 
-    def forward(self, x):
-        ...
 
-        logits = ...
+    def forward(self, x, lengths):
+        B, T = x.shape
+        mask = (x == 0).unsqueeze(2)
+        tok_emb = self.token_embedding_table(x)  # (B,T,C)
+        pos_emb = self.position_embedding_table(torch.arange(T, device=x.device))  # (T,C)
+        x = tok_emb + pos_emb  # (B,T,C)
+        x = self.blocks(x)
+        x = self.ln_f(x)
+
+        x = x.masked_fill(mask, 0.0)
+        x = torch.sum(x, dim = 1)  # (B,C)
+        lengths_tensor = lengths.view(-1, 1).float()
+        x = x / lengths_tensor
+        
+
+        logits = self.output(x)  # (C,output)
         return logits

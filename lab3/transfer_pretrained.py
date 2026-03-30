@@ -4,11 +4,18 @@ from tqdm import tqdm
 from utils.load_datasets import load_MR, load_Semeval2017A
 from training import get_metrics_report
 
-# DATASET = 'MR'
-# PRETRAINED_MODEL = 'siebert/sentiment-roberta-large-english'
-
+'''
+DATASET = 'MR'
+PRETRAINED_MODEL = ['siebert/sentiment-roberta-large-english',
+                    'philipobiorah/bert-imdb-model',
+                    'distilbert/distilbert-base-uncased-finetuned-sst-2-english']
+'''
 DATASET = 'Semeval2017A'
-PRETRAINED_MODEL = 'cardiffnlp/twitter-roberta-base-sentiment'
+PRETRAINED_MODEL = ['cardiffnlp/twitter-roberta-base-sentiment', 
+                    'finiteautomata/bertweet-base-sentiment-analysis',
+                    'cardiffnlp/twitter-roberta-base-sentiment-latest']
+                    
+
 
 
 LABELS_MAPPING = {
@@ -16,11 +23,29 @@ LABELS_MAPPING = {
         'POSITIVE': 'positive',
         'NEGATIVE': 'negative',
     },
+    'philipobiorah/bert-imdb-model': {
+        '0': 'negative',
+        '1': 'positive',
+    },
+    'distilbert/distilbert-base-uncased-finetuned-sst-2-english': {
+        'NEGATIVE': 'negative',
+        'POSITIVE': 'positive',
+    },
     'cardiffnlp/twitter-roberta-base-sentiment': {
         'LABEL_0': 'negative',
         'LABEL_1': 'neutral',
         'LABEL_2': 'positive',
-    }
+    },
+    'cardiffnlp/twitter-roberta-base-sentiment-latest': {
+        'LABEL_0': 'negative',
+        'LABEL_1': 'neutral',
+        'LABEL_2': 'positive',
+    },
+    'finiteautomata/bertweet-base-sentiment-analysis': {
+        'NEG': 'negative',
+        'NEU': 'neutral',
+        'POS': 'positive',
+    },
 }
 
 if __name__ == '__main__':
@@ -40,13 +65,16 @@ if __name__ == '__main__':
     n_classes = len(list(le.classes_))
 
     # define a proper pipeline
-    sentiment_pipeline = pipeline("sentiment-analysis", model=PRETRAINED_MODEL)
+    sentiment_pipeline = {m: pipeline("sentiment-analysis", model=m, truncation=True) for m in PRETRAINED_MODEL }
 
-    y_pred = []
-    for x in tqdm(X_test):
-        # TODO: Main-lab-Q6 - get the label using the defined pipeline 
-        label = ...        
-        y_pred.append(LABELS_MAPPING[PRETRAINED_MODEL][label])
+    
+    for m in PRETRAINED_MODEL:
+        y_pred = []
+        model = sentiment_pipeline[m]
+        for x in tqdm(X_test):
+            # TODO: Main-lab-Q6 - get the label using the defined pipeline 
+            label = model(x)[0]['label']
+            y_pred.append(LABELS_MAPPING[m][label])
 
-    y_pred = le.transform(y_pred)
-    print(f'\nDataset: {DATASET}\nPre-Trained model: {PRETRAINED_MODEL}\nTest set evaluation\n{get_metrics_report([y_test], [y_pred])}')
+        y_pred = le.transform(y_pred)
+        print(f'\nDataset: {DATASET}\nPre-Trained model: {m}\nTest set evaluation\n{get_metrics_report([y_test], [y_pred])}')
