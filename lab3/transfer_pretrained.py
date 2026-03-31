@@ -4,7 +4,7 @@ from tqdm import tqdm
 from utils.load_datasets import load_MR, load_Semeval2017A
 from training import get_metrics_report
 
-'''
+
 DATASET = 'MR'
 PRETRAINED_MODEL = ['siebert/sentiment-roberta-large-english',
                     'philipobiorah/bert-imdb-model',
@@ -13,9 +13,8 @@ PRETRAINED_MODEL = ['siebert/sentiment-roberta-large-english',
 DATASET = 'Semeval2017A'
 PRETRAINED_MODEL = ['cardiffnlp/twitter-roberta-base-sentiment', 
                     'finiteautomata/bertweet-base-sentiment-analysis',
-                    'cardiffnlp/twitter-roberta-base-sentiment-latest']
-                    
-
+                    'cardiffnlp/twitter-roberta-base-sentiment-latest']    
+'''
 
 
 LABELS_MAPPING = {
@@ -24,8 +23,8 @@ LABELS_MAPPING = {
         'NEGATIVE': 'negative',
     },
     'philipobiorah/bert-imdb-model': {
-        '0': 'negative',
-        '1': 'positive',
+        'LABEL_0': 'negative',
+        'LABEL_1': 'positive',
     },
     'distilbert/distilbert-base-uncased-finetuned-sst-2-english': {
         'NEGATIVE': 'negative',
@@ -37,9 +36,9 @@ LABELS_MAPPING = {
         'LABEL_2': 'positive',
     },
     'cardiffnlp/twitter-roberta-base-sentiment-latest': {
-        'LABEL_0': 'negative',
-        'LABEL_1': 'neutral',
-        'LABEL_2': 'positive',
+        'negative': 'negative',
+        'neutral': 'neutral',
+        'positive': 'positive',
     },
     'finiteautomata/bertweet-base-sentiment-analysis': {
         'NEG': 'negative',

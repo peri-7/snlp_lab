@@ -51,6 +51,7 @@ class SentenceDataset(Dataset):
         '''
         lengths = [len(s) for s in self.data] 
         plt.hist(lengths, bins=60, edgecolor='black')
+        plt.title("Length of Documents Histogram")
         plt.show()
         '''
         self.lengths = []

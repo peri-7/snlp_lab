@@ -118,7 +118,8 @@ optimizer = torch.optim.Adam(params = parameters, lr=0.001)  # EX8
 train_losses = []
 val_losses = []
 test_losses = []
-stopper = EarlyStopper(model, save_path="multi_head_attention_best_model.pt", patience=5, min_delta=0)
+best_path = "multi_head_attention_best_model.pt"
+stopper = EarlyStopper(model, save_path=best_path, patience=5, min_delta=0)
 for epoch in range(1, EPOCHS + 1):
     # train the model for one epoch
     train_dataset(epoch, train_loader, model, criterion, optimizer)
@@ -146,14 +147,17 @@ for epoch in range(1, EPOCHS + 1):
 
 print('\n ========== EX10 ========== \n')
 
-print(get_metrics_report(y_test_gold, y_test_pred))
+model.load_state_dict(torch.load(best_path))
+_, (best_y_test_gold, best_y_test_pred) = eval_dataset(test_loader, model, criterion)
+
+print(get_metrics_report(best_y_test_gold, best_y_test_pred))
 
 plt.figure()
 x = np.arange(len(train_losses))
 plt.plot(x, train_losses, label="Train")
 plt.plot(x, val_losses, label="Validation")
 plt.plot(x, test_losses, label="Test")
-plt.title(f"Learning Curves ({DATASET})")
+plt.title(f"MultiHeadAttentionModel - Learning Curves ({DATASET})")
 plt.xlabel("Epochs")
 plt.ylabel("Loss")
 plt.grid(linestyle='--')

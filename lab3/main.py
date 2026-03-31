@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader
 from config import EMB_PATH
 from dataloading import SentenceDataset
 from models import BaselineDNN
+from early_stopper import EarlyStopper
 from training import train_dataset, eval_dataset, get_metrics_report
 from utils.load_datasets import load_MR, load_Semeval2017A
 from utils.load_embeddings import load_word_vectors
@@ -115,6 +116,8 @@ optimizer = torch.optim.Adam(params = parameters, lr=0.001)  # EX8
 #############################################################################
 train_losses = []
 test_losses = []
+best_path = "baselineDNN_best_model.pt"
+stopper = EarlyStopper(model, save_path=best_path, patience=5, min_delta=0)
 for epoch in range(1, EPOCHS + 1):
     # train the model for one epoch
     train_dataset(epoch, train_loader, model, criterion, optimizer)
@@ -129,16 +132,22 @@ for epoch in range(1, EPOCHS + 1):
                                                          criterion)
     train_losses.append(train_loss)
     test_losses.append(test_loss)
+    if stopper.early_stop(test_loss):
+        print(f'stopped at epoch {epoch}')
+        break
 
 print('\n ========== EX10 ========== \n')
 
-print(get_metrics_report(y_test_gold, y_test_pred))
+model.load_state_dict(torch.load(best_path))
+_, (best_y_test_gold, best_y_test_pred) = eval_dataset(test_loader, model, criterion)
+
+print(get_metrics_report(best_y_test_gold, best_y_test_pred))
 
 plt.figure()
-x = np.arange(EPOCHS)
+x = np.arange(len(train_losses))
 plt.plot(x, train_losses, label="Train")
 plt.plot(x, test_losses, label="Test")
-plt.title(f"Learning Curves ({DATASET})")
+plt.title(f"BaselineDNN - Learning Curves ({DATASET})")
 plt.xlabel("Epochs")
 plt.ylabel("Loss")
 plt.grid(linestyle='--')

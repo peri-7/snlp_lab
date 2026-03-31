@@ -71,7 +71,7 @@ class BaselineDNN(nn.Module):
         
         # 2 - construct a sentence representation out of the word embeddings
         '''
-        useful for comparison
+        #useful for comparison
         sum_embeddings = torch.sum(embeddings, dim = 1)
         lengths_tensor = lengths.view(-1, 1).float()
         representations = sum_embeddings / lengths_tensor
@@ -143,7 +143,12 @@ class LSTM(nn.Module):
         # pick the output of the lstm corresponding to the last word
         # TODO: Main-Lab-Q2 (Hint: take actual lengths into consideration)
         batch_indices = torch.arange(batch_size, device=x.device)
-        representations = ht[batch_indices, lengths - 1, :]
+        if not self.bidirectional:
+            representations = ht[batch_indices, lengths - 1, :]
+        else:
+            forward_rep = ht[batch_indices, lengths - 1, :self.hidden_size]
+            backward_rep = ht[batch_indices, 0, self.hidden_size:]
+            representations = torch.cat((forward_rep, backward_rep), dim=1)
 
         logits = self.linear(representations)
 
