@@ -38,14 +38,21 @@ Different versions of main correspond to different models.
 
 There are also options to run pretrained models
 
+
 `transfer_pretrained.py ` -> get predictions from pre-trained : 
           
 `siebert/sentiment-roberta-large-english`, `philipobiorah/bert-imdb-model`, `distilbert/distilbert-base-uncased-finetuned-sst-2-english`
 for MR dataset
-          
+
 `cardiffnlp/twitter-roberta-base-sentiment`, `finiteautomata/bertweet-base-sentiment-analysis`, `cardiffnlp/twitter-roberta-base-sentiment-latest`  for Semeval2017A dataset
 
+
+
+
 `finetune_pretrained.py` -> fine tune 'bert-base-cased' model locally
+
+
+
 
 `finetune_pretrained.ipynb` -> fine tuning:
 
