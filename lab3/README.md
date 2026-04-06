@@ -47,7 +47,7 @@ for MR dataset
 
 `finetune_pretrained.py` -> fine tune 'bert-base-cased' model locally
 
-`finetune_pretrained.ipynb` -> fine tuningQ
+`finetune_pretrained.ipynb` -> fine tuning:
 
 `distilbert-base-uncased`, `albert-base-v2`, `google/electra-small-discriminator` for MR dataset 
 
